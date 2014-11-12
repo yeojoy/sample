@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <style>
+    canvas { border: 1px solid #ccc }
+    </style>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <script src="./javascripts/jquery-2.1.0.min.js" type="text/javascript"></script>
+  </head>
+  <body>
+  <canvas id="c" width="1000" height="600"></canvas>
+  <div>
+    <span class='mousepos'></span>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button onclick="undoDrawing()">undo</button>
+    <button onclick="redoDrawing()">redo</button>
+    
+  </div>
+
+  <script >
+
+  $(document).ready(function() {
+    init();
+  });
+
+var canvas;
+var context;
+var leftImg = {}, rightImg = {};
+var lastX, lastY;
+
+var isDrawing = false;
+
+function init() {
+  canvas = document.getElementById('c');
+  context = canvas.getContext('2d');
+
+  canvas.onmousedown = function (e) {
+    console.log('mousedown');
+    isDrawing = true;
+
+    drawLine(e.clientX, e.clientY, false);
+  };
+
+  canvas.onmouseleave = function (e) {
+    if (isDrawing) {
+      isDrawing = false;
+      pushPointsToArray();
+    }
+  };
+
+  canvas.onmousemove = function ( e) {
+    if (!isDrawing) return;
+    drawLine(e.clientX, e.clientY, isDrawing);
+  };
+
+  canvas.onmouseup = function() {
+    if (isDrawing) {
+      pushPointsToArray();
+
+      isDrawing = false;
+    }
+  };
+
+  drawBG();
+
+  loadImages(sources, function(images) {
+    context.drawImage(images.L1, 100, 50, 100, 100);
+    context.drawImage(images.L2, 100, 150, 100, 100);
+    context.drawImage(images.L3, 100, 250, 100, 100);
+
+    context.drawImage(images.R1, 800, 55, 93, 104);
+    context.drawImage(images.R2, 800, 155, 93, 104);
+    context.drawImage(images.R3, 800, 255, 93, 104);
+
+    pushPointsToArray();
+  });
+
+  initEvent();
+}
+
+function loadImages(sources, callback) {
+  var images = {};
+  var loadedImages = 0;
+  var numImages = 0;
+
+  for(var src in sources) {
+    numImages++;
+    images[src] = new Image();
+    images[src].onload = function() {
+      if(++loadedImages >= numImages) {
+        callback(images);
+      }
+    };
+    images[src].src = sources[src];
+  }
+}
+
+var sources = {
+  L1: './images/a.png',L2: './images/a.png', L3: './images/a.png',
+  R1: './images/b.png',R2: './images/b.png', R3: './images/b.png'
+};
+
+function drawLine(x, y, isDown) {
+  if (isDown) {
+    context.beginPath();
+    context.strokeStyle = "#222222";
+    context.lineWidth = 5;
+    context.lineJoin = "round";
+    context.moveTo(lastX, lastY);
+    context.lineTo(x, y);
+    context.closePath();
+    context.stroke();
+  }
+
+  lastX = x, lastY = y;
+}
+
+function drawBG() {
+
+  context.fillStyle = "#FFFFFF";
+  context.fillRect(0, 0, 1000, 600);
+  pushPointsToArray();
+}
+
+var lineArray = new Array();
+var stageCount = -1;
+
+function pushPointsToArray() {
+    stageCount++;
+    // 다시 그릴 때 초기화 하는 코드
+    if (stageCount < lineArray.length) { 
+        lineArray.length = stageCount;
+    }
+    var dataUrl = canvas.toDataURL();
+    console.log(dataUrl);
+    lineArray.push(dataUrl);
+    document.title = stageCount + ":" + lineArray.length;
+}
+
+function undoDrawing() {
+  if (stageCount > 1) {
+    stageCount--;
+    var canvasPic = new Image();
+    canvasPic.src = lineArray[stageCount];
+    canvasPic.onload = function () {
+      context.drawImage(canvasPic, 0, 0);
+    }
+    document.title = stageCount + ":" + lineArray.length;
+  }
+}
+function redoDrawing() {
+  if (stageCount < lineArray.length-1) {
+    stageCount++;
+    var canvasPic = new Image();
+    canvasPic.src = lineArray[stageCount];
+    canvasPic.onload = function () {
+      context.drawImage(canvasPic, 0, 0);
+    }
+    document.title = stageCount + ":" + lineArray.length;
+  }
+}
+
+function extractXY (oe){
+  return { x: oe.pageX, y: oe.pageY };
+}
+
+function writeMessage(msg) {
+  document.getElementsByClassName('mousepos')[0].textContent = msg;
+}
+
+function getMousePos(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: evt.clientX - rect.left,
+    y: evt.clientY - rect.top
+  };
+}
+
+function initEvent() {
+  canvas.addEventListener("touchstart", touchS, false);
+  canvas.addEventListener("touchmove",tMove, false);
+  
+  function touchS(e){
+    var xy = extractXY(e.originalEvent.touches[0]);
+    context.moveTo( xy.x, xy.y );
+    e.preventDefault();
+  }
+
+  function tMove(e){
+    var xy = extractXY(e.originalEvent.touches[0]);
+    context.lineTo(xy.x, xy.y);
+    context.stroke();
+    e.preventDefault();
+  }
+  canvas.addEventListener('mousemove', function(e) {
+    var mousePosition = getMousePos(canvas, e);
+    writeMessage("mouse x: " + mousePosition.x + ", y: " + mousePosition.y);
+  }, false);
+}
+
+    </script>
+  </body>
+</html>
