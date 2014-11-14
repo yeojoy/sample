@@ -15,14 +15,19 @@
     </div>
 
     <script>
+    var paper;
+    var image;
       $().ready(function() {
-        var paper = Raphael(10, 20, 320, 200);
+        paper = Raphael(10, 20, 320, 200);
 
         var circle = paper.circle(50, 40, 10);
 
+        image = paper.image('./images/a.png', 100, 100, 100, 100)
         circle.attr('fill', '#f00');
 
         circle.attr('stroke', '#fff');
+
+
       });
     
     </script>
