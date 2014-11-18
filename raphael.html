@@ -41,9 +41,9 @@
     var s1 = { id: 's1', url: './images/a.png', style: 'default', width: 100, height: 100 };
     var s2 = { id: 's2', url: './images/a.png', style: 'default', width: 100, height: 100 };
 
-    var d0 = { id: 'd0', url: './images/b.png', style: 'default', width: 94, height: 104 };
-    var d1 = { id: 'd1', url: './images/b.png', style: 'default', width: 94, height: 104 };
-    var d2 = { id: 'd2', url: './images/b.png', style: 'default', width: 94, height: 104 };
+    var d0 = { id: 'd0', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d1 = { id: 'd1', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d2 = { id: 'd2', url: './images/b.png', style: 'default', width: 100, height: 104 };
 
 
     $().ready(function() {
@@ -60,12 +60,18 @@
       initDrawLine([s0, s1, s2], [d0, d1, d2]);
 
       $('#btnUndo').click(function(e) {
-        var l = lineObj[lastAnswerSourceId];
-        l.remove();
+        if (pointObj) restoreItemState(pointObj);
+
+        if (lastAnswerSourceId) {
+          var l = lineObj[lastAnswerSourceId];
+          l.remove();
+        }
       });
 
       $('#btnClear').click(function(e) {
         userAnswer = {};
+
+        if (pointObj) restoreItemState(pointObj);
         pointObj = {};
         for (var id in lineObj) {
           var l = lineObj[id];
@@ -160,8 +166,14 @@
       for (var objId in srcImgs) {
         (function (img, objId) {
           img[0].onmousedown = function() {
-            img.transform("s1.2");
-            pointObj.startItem = img;
+            if (pointObj.endItem) {
+              pointObj.startItem = img;
+              drawLine(pointObj);
+              pointObj = {};
+            } else {
+              img.transform("s1.2");
+              pointObj.startItem = img;  
+            }
           };
           img[0].onmouseover = function() {
             img.attr('opacity', 0.5);
@@ -169,7 +181,6 @@
           img[0].onmouseout = function() {
             img.attr('opacity', 1,0);
           };
-
 
         })(srcImgs[objId], objId);
       }
@@ -181,8 +192,10 @@
             if (pointObj.startItem) {
               pointObj.endItem = img;
               drawLine(pointObj);
-
               pointObj = {};
+            } else {
+              img.transform("s1.2");
+              pointObj.endItem = img;
             }
           };
 
@@ -232,7 +245,7 @@
         // 사용자 answer 저장
         lastAnswerSourceId = obj.startItem[0].id;
         userAnswer[lastAnswerSourceId] = obj.endItem[0].id;
-        restoreItemState(obj.startItem);
+        restoreItemState(obj);
         lineObj[lastAnswerSourceId] = line;
         console.log('User Answer : ' + JSON.stringify(userAnswer));
 
@@ -242,7 +255,9 @@
     }
     
     function restoreItemState(obj) {
-      obj.transform("");
+      // transform 초기화
+      if (obj.startItem) obj.startItem.transform("");
+      if (obj.endItem) obj.endItem.transform("");
     }
     </script>
   </body>
