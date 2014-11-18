@@ -4,220 +4,261 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="./javascripts/jquery-2.1.0.min.js"></script>
-    <title>선 그리기</title>
+    <script type="text/javascript" src="./javascripts/raphael-min.js"></script>
+    <title>Raphaeljs 예제</title>
+
     <style>
-      .container {
-        text-align: center;
-      }
-
-      .source {
-        height: 420px;
-        display: inline-block;
-      }
-
-      .source .img {
-        display: block;
-        margin-top: 20px;
-        margin-bottom: 20px;
-      }
-
-      .canvas {
-        display: inline-block;
-      }
-
-      .destination {
-        height: 420px;
-        display: inline-block;
-      }
-
-      .destination .img {
-        display: block;
-        margin-top: 18px;
-        margin-bottom: 18px;
-      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="drawline">
-        <div class="source">
-          <!-- 시작하는 점 -->
-          <img id='s0' class='srcImg img' src="./images/a.png" width='100' height='100'>
-          <img id='s1' class='srcImg img' src="./images/a.png" width='100' height='100'>
-          <img id='s2' class='srcImg img' src="./images/a.png" width='100' height='100'>
-        </div>
-        <!-- CANVAS -->
-        <canvas class="canvas" id="lineCanvas" width="400px" height="420px"></canvas>
-
-        <div class="destination">
-          <!-- 종료하는 점 -->
-          <img id='d0' class='destImg img' src="./images/b.png" width='93' height='104'>
-          <img id='d1' class='destImg img' src="./images/b.png" width='93' height='104'>
-          <img id='d2' class='destImg img' src="./images/b.png" width='93' height='104'>
-        </div>
+    <div  style="text-align: center;">
+      <div id="canvas"></div>
+      <div class="buttons">
+        <button id='btnClear'>clear</button>
+        <button id='btnUndo'>undo</button>
       </div>
-      <button id='btnClear'>clear</button>
-      <button id='btnUndo'>undo</button>
     </div>
 
-
     <script>
-      $(document).ready(function() {
-        init();
-        initEvent();
+    var paper;
+    var lineObj = {}, pointObj = {};
+    var userAnswer = {};
+    // 선긋는 방향을 기준으로 가로선 긋기 : horizontal, 세로선 긋기 : vertical
+    var type = '';
+    // undo 기능추가. 최근에 그린 선을 취소한다.
+    var lastAnswerSourceId = '';
+    var CONST = {};
+    CONST.verticalMargin = 50;
+    CONST.verticalStartOffsetX = 50;
+    CONST.verticalEndOffsetX = 400;
+
+    CONST.horizontalMargin = 150;
+    CONST.horizontalStartOffsetY = 50;
+    CONST.horizontalEndOffsetY = 400;
+
+    // sample obj, json 뽑을 때 참고.
+    var s0 = { id: 's0', url: './images/a.png', style: 'default', width: 100, height: 100 };
+    var s1 = { id: 's1', url: './images/a.png', style: 'default', width: 100, height: 100 };
+    var s2 = { id: 's2', url: './images/a.png', style: 'default', width: 100, height: 100 };
+
+    var d0 = { id: 'd0', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d1 = { id: 'd1', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d2 = { id: 'd2', url: './images/b.png', style: 'default', width: 100, height: 104 };
+
+
+    $().ready(function() {
+      $(window).on('hashchange', route);
+
+      var hash = window.location.hash.replace("#", "");
+      console.log("hash : " + hash);
+      if(hash.length > 0 && (hash === 'v' || hash === 'vertical' || hash === 'vert')) {
+        type = 'vertical';
+      } else {
+        type = 'horizontal';
+      }
+
+      initDrawLine([s0, s1, s2], [d0, d1, d2]);
+
+      $('#btnUndo').click(function(e) {
+        if (pointObj) restoreItemState(pointObj);
+
+        if (lastAnswerSourceId) {
+          var l = lineObj[lastAnswerSourceId];
+          l.remove();
+        }
       });
 
-      var source = {}, dest = {};
+      $('#btnClear').click(function(e) {
+        userAnswer = {};
 
-      var canvas;
-      var context;
-      var pointObj = {}, lineObj = {};
-      var userAnswer = {};
-      var lastAnswerSourceId = '';
-
-      function init() {
-        canvas = document.getElementById('lineCanvas');
-        context = canvas.getContext('2d');
-
-        var srcImages = $('.srcImg');
-        var destImages = $('.destImg');
-
-        console.log(srcImages);
-        console.log(destImages);
-
-
-        for (i = 0, j = srcImages.length; i < j; i++) {
-          source[srcImages[i].id] = {
-            id: srcImages[i].id,
-            x: 0,
-            y: srcImages[i].offsetTop + (srcImages[i].height / 2)
-          };
+        if (pointObj) restoreItemState(pointObj);
+        pointObj = {};
+        for (var id in lineObj) {
+          var l = lineObj[id];
+          l.remove();
         }
+        lineObj = {};
+      });
+    });
 
-        for (i = 0, j = destImages.length; i < j; i++) {
-          dest[destImages[i].id] = {
-            id: destImages[i].id,
-            x: 400,
-            y: destImages[i].offsetTop + (destImages[i].height / 2)
-          };
-        }
+    function route(event) { 
+      var hash = window.location.hash.replace("#", "");
+      console.log("HASH : " + hash);
 
-        clearCanvas(true);
+      if(hash.length > 0 && (hash === 'v' || hash === 'vertical' || hash === 'vert')) {
+        type = 'vertical';
+      } else {
+        type = 'horizontal';
       }
 
-      function initEvent() {
+      initDrawLine([s0, s1, s2], [d0, d1, d2]);
+    }
 
-        $('.img').mouseenter(function(e) {
-          $(this).css('background', '#ccc');
-        });;
-
-        $('.img').mouseleave(function(e) {
-          $(this).css('background', '#fff');
-        });
-
-        $('.srcImg').click(function(e) {
-          pointObj.startItem = source[$(this).attr('id')];
-        });
-
-        $('.destImg').click(function(e) {
-          if (pointObj.startItem) {
-            pointObj.endItem = dest[$(this).attr('id')];
-            drawLine(pointObj);
+    function initDrawLine(srcImgObjArray, destImgObjArray) {
+      var canvas = document.getElementById('canvas');
+      // 캔버스 초기
+      if (canvas.childNodes[0]) {
+        console.log("remove old child");
+        canvas.removeChild(canvas.childNodes[0]);  
+      }
+      console.log("TYPE : " + type);
+      paper = Raphael('canvas', 1000, 600);
+      var srcImgs = {}, destImgs = {};
+      if (type === 'horizontal') {
+        // 가로 줄
+        for (i = 0, j = srcImgObjArray.length; i < j; i++) {
+          var imgId = srcImgObjArray[i].id;
+          if (i == 0) {
+            srcImgs[imgId] = paper.image(srcImgObjArray[i].url, CONST.verticalStartOffsetX, CONST.verticalMargin, srcImgObjArray[i].width, srcImgObjArray[i].height);  
+          } else {
+            var offsetTop = (CONST.verticalMargin * (i + 1)) + (srcImgObjArray[i].height * i);
+            console.log(imgId + '\'s src top : ' + offsetTop);
+            srcImgs[imgId] = paper.image(srcImgObjArray[i].url, CONST.verticalStartOffsetX, offsetTop, srcImgObjArray[i].width, srcImgObjArray[i].height);  
+         
           }
-        });
+          srcImgs[imgId][0].id = imgId;
+        }
 
-        $('#btnClear').click(function(e) {
-          clearCanvas(false);
-          userAnswer = {};
-          lineObj = {};
-        });
-
-        $('#btnUndo').click(function(e) {
-          undoAnswer();
-        });
-      }
-
-      function drawLine(obj) {
-        console.log("POINT : " + JSON.stringify(obj));
-        if (obj) {
-          // 기존에 표현한 선이 있으면 지움.
-          // TODO 여기에서 undo를 해야하는데 array가 아니라 object에 넣어서 source image를 중심으로 갖고 있어야겠다.
-          if (userAnswer[obj.startItem.id] && obj.endItem.id !== userAnswer[obj.startItem.id]) {
-            // var endPoint = dest[userAnswer[obj.startItem.id]];
-            // context.beginPath();
-            // context.strokeStyle = "#fff";
-            // context.lineWidth = 7;
-            // context.lineJoin = "round";
-            // context.moveTo(obj.startItem.x, obj.startItem.y);
-            // context.lineTo(endPoint.x, endPoint.y);
-            // context.closePath();
-            // context.stroke();
-            lineObj[obj.startItem.id] = '';
-            showLineAnswer(lineObj);
+        for (i = 0, j = destImgObjArray.length; i < j; i++) {
+          var imgId = destImgObjArray[i].id;
+          if (i == 0) { 
+            destImgs[imgId] = paper.image(destImgObjArray[i].url, CONST.verticalEndOffsetX, CONST.verticalMargin, destImgObjArray[i].width, destImgObjArray[i].height)  
+          } else {
+            var offsetTop = (CONST.verticalMargin * (i + 1)) + (destImgObjArray[i].height * i);
+            console.log(imgId + '\'s dest top : ' + offsetTop);
+            destImgs[imgId] = paper.image(destImgObjArray[i].url, CONST.verticalEndOffsetX, offsetTop, destImgObjArray[i].width, destImgObjArray[i].height);           
           }
+          destImgs[imgId][0].id = imgId;
+        }
 
-          // 선긋기
-          context.beginPath();
-          context.strokeStyle = "#222222";
-          context.lineWidth = 5;
-          context.lineJoin = "round";
-          context.moveTo(obj.startItem.x, obj.startItem.y);
-          context.lineTo(obj.endItem.x, obj.endItem.y);
-          context.closePath();
-          context.stroke();
+      } else if (type === 'vertical') {
+        for (i = 0, j = srcImgObjArray.length; i < j; i++) {
+          var imgId = srcImgObjArray[i].id;
+          if (i == 0) {
+            srcImgs[imgId] = paper.image(srcImgObjArray[i].url, CONST.horizontalMargin, CONST.horizontalStartOffsetY, srcImgObjArray[i].width, srcImgObjArray[i].height);  
+          } else {
+            
+            var offsetLeft = (CONST.horizontalMargin * (i + 1)) + (srcImgObjArray[i].width * i);
+            console.log(imgId + '\'s src left : ' + offsetLeft);
+            srcImgs[imgId] = paper.image(srcImgObjArray[i].url, offsetLeft, CONST.horizontalStartOffsetY, srcImgObjArray[i].width, srcImgObjArray[i].height);  
+          }
+          srcImgs[imgId][0].id = imgId;
+        }
 
-          // 사용자 answer 저장
-          lastAnswerSourceId = obj.startItem.id;
-          userAnswer[lastAnswerSourceId] = obj.endItem.id;
-          lineObj[lastAnswerSourceId] = canvas.toDataURL();
-          console.log('User Answer : ' + JSON.stringify(userAnswer));
-          console.log('Line Object : ' + JSON.stringify(lineObj));
-
-          // 초기화
-          pointObj = {};
+        for (i = 0, j = destImgObjArray.length; i < j; i++) {
+          var imgId = destImgObjArray[i].id;
+          if (i == 0) {
+            destImgs[imgId] = paper.image(destImgObjArray[i].url, CONST.horizontalMargin, CONST.horizontalEndOffsetY, destImgObjArray[i].width, destImgObjArray[i].height)  
+            
+          } else {
+            var offsetLeft = (CONST.horizontalMargin * (i + 1)) + (destImgObjArray[i].width * i);
+            console.log(imgId + '\'s src left : ' + offsetLeft); 
+            destImgs[imgId] = paper.image(destImgObjArray[i].url, offsetLeft, CONST.horizontalEndOffsetY, destImgObjArray[i].width, destImgObjArray[i].height);
+          }
+          destImgs[imgId][0].id = imgId;
         }
       }
 
-      /* 화면 clear */
-      function clearCanvas(isFirst) {
-        if (isFirst) {
-          // 처음 실행할 때 화면 초기
-          context.beginPath()
-          context.fillStyle = '#fff'
-          context.closePath()
-          context.fillRect(0, 0, canvas.width, canvas.height)
-          lineObj['bg'] = canvas.toDataURL();
-        } else {
-          var bg = new Image()
-          bg.src = lineObj['bg']
-          bg.onload = function() { context.drawImage(bg, 0, 0); }
+      initDrawLineEvent(srcImgs, destImgs);
+    }
+
+    function initDrawLineEvent(srcImgs, destImgs) {
+      for (var objId in srcImgs) {
+        (function (img, objId) {
+          img[0].onmousedown = function() {
+            if (pointObj.endItem) {
+              pointObj.startItem = img;
+              drawLine(pointObj);
+              pointObj = {};
+            } else {
+              img.transform("s1.2");
+              pointObj.startItem = img;  
+            }
+          };
+          img[0].onmouseover = function() {
+            img.attr('opacity', 0.5);
+          };
+          img[0].onmouseout = function() {
+            img.attr('opacity', 1,0);
+          };
+
+        })(srcImgs[objId], objId);
+      }
+
+      for (var objId in destImgs) {
+        (function (img, objId) {
+
+          img[0].onmousedown = function() {
+            if (pointObj.startItem) {
+              pointObj.endItem = img;
+              drawLine(pointObj);
+              pointObj = {};
+            } else {
+              img.transform("s1.2");
+              pointObj.endItem = img;
+            }
+          };
+
+          img[0].onmouseover = function() {
+            img.attr('opacity', 0.5);
+          };
+          img[0].onmouseout = function() {
+            img.attr('opacity', 1,0);
+          };
+        })(destImgs[objId], objId);
+      }
+    }
+
+    // 선을 그림
+    function drawLine(obj) {
+      if (obj) {
+
+        // 이전에 저장한 선이 있다면 삭제
+        if (userAnswer[obj.startItem[0].id] && obj.endItem[0].id !== userAnswer[obj.startItem[0].id]) {
+          var l = lineObj[obj.startItem[0].id];
+          l.remove();
+          userAnswer[obj.startItem[0].id] = '';
+
         }
-      }
 
-      function undoAnswer() {
-        lineObj[lastAnswerSourceId] = '';
-        userAnswer[lastAnswerSourceId] = '';
-        showLineAnswer(lineObj);
-      }
-
-      function showLineAnswer(obj) {
-        console.log('showLineAnswer(), line obj : ' + JSON.stringify(obj));
-        clearCanvas(false);
-        for (var key in obj) {
-          console.log('key : ' + key);
-          if (key === 'bg') continue;
-          redrawLine(obj[key]);
-        }
-      }
-
-      function redrawLine(value) {
-        if (value) {
-          var img = new Image();
-          img.src = value;
-          img.onload = function() { context.drawImage(img, 0, 0)};
+        // 선긋기
+        // path에 시작점과 끝점을 선
+        // raphael obj의 값을 접근할 때에는 baseVal.value로 값을 가져와야 함.
+        var startX, startY, endX, endY;
+        if (type === 'horizontal') {
+          startX = obj.startItem[0].x.baseVal.value + obj.startItem[0].width.baseVal.value + 10;
+          startY = obj.startItem[0].y.baseVal.value + (obj.startItem[0].height.baseVal.value / 2);
+          endX = obj.endItem[0].x.baseVal.value - 10;
+          endY = obj.endItem[0].y.baseVal.value + (obj.endItem[0].height.baseVal.value / 2);  
+        } else if (type === 'vertical') {
+          startX = obj.startItem[0].x.baseVal.value + (obj.startItem[0].width.baseVal.value / 2);
+          startY = obj.startItem[0].y.baseVal.value + obj.startItem[0].height.baseVal.value + 10;
+          endX = obj.endItem[0].x.baseVal.value + (obj.endItem[0].width.baseVal.value / 2);
+          endY = obj.endItem[0].y.baseVal.value - 10;
         }
         
+
+        var path = "M" + startX + "," + startY + "L" + endX + "," + endY;
+        console.log("path : " + path);
+        var line = paper.path([path]);
+
+        // 사용자 answer 저장
+        lastAnswerSourceId = obj.startItem[0].id;
+        userAnswer[lastAnswerSourceId] = obj.endItem[0].id;
+        restoreItemState(obj);
+        lineObj[lastAnswerSourceId] = line;
+        console.log('User Answer : ' + JSON.stringify(userAnswer));
+
+        // 초기화
+        pointObj = {};
       }
+    }
+    
+    function restoreItemState(obj) {
+      // transform 초기화
+      if (obj.startItem) obj.startItem.transform("");
+      if (obj.endItem) obj.endItem.transform("");
+    }
     </script>
   </body>
 </html>

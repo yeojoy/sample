@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="./javascripts/jquery-2.1.0.min.js"></script>
+    <title>선 그리기</title>
+    <style>
+      .container {
+        text-align: center;
+      }
+
+      .source {
+        height: 420px;
+        display: inline-block;
+      }
+
+      .source .img {
+        display: block;
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+
+      .canvas {
+        display: inline-block;
+      }
+
+      .destination {
+        height: 420px;
+        display: inline-block;
+      }
+
+      .destination .img {
+        display: block;
+        margin-top: 18px;
+        margin-bottom: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="drawline">
+        <div class="source">
+          <!-- 시작하는 점 -->
+          <img id='s0' class='srcImg img' src="./images/a.png" width='100' height='100'>
+          <img id='s1' class='srcImg img' src="./images/a.png" width='100' height='100'>
+          <img id='s2' class='srcImg img' src="./images/a.png" width='100' height='100'>
+        </div>
+        <!-- CANVAS -->
+        <canvas class="canvas" id="lineCanvas" width="400px" height="420px"></canvas>
+
+        <div class="destination">
+          <!-- 종료하는 점 -->
+          <img id='d0' class='destImg img' src="./images/b.png" width='93' height='104'>
+          <img id='d1' class='destImg img' src="./images/b.png" width='93' height='104'>
+          <img id='d2' class='destImg img' src="./images/b.png" width='93' height='104'>
+        </div>
+      </div>
+      <button id='btnClear'>clear</button>
+      <button id='btnUndo'>undo</button>
+    </div>
+
+
+    <script>
+      $(document).ready(function() {
+        init();
+        initEvent();
+      });
+
+      var source = {}, dest = {};
+
+      var canvas;
+      var context;
+      var pointObj = {}, lineObj = {};
+      var userAnswer = {};
+      var lastAnswerSourceId = '';
+
+      function init() {
+        canvas = document.getElementById('lineCanvas');
+        context = canvas.getContext('2d');
+
+        var srcImages = $('.srcImg');
+        var destImages = $('.destImg');
+
+        console.log(srcImages);
+        console.log(destImages);
+
+
+        for (i = 0, j = srcImages.length; i < j; i++) {
+          source[srcImages[i].id] = {
+            id: srcImages[i].id,
+            x: 0,
+            y: srcImages[i].offsetTop + (srcImages[i].height / 2)
+          };
+        }
+
+        for (i = 0, j = destImages.length; i < j; i++) {
+          dest[destImages[i].id] = {
+            id: destImages[i].id,
+            x: 400,
+            y: destImages[i].offsetTop + (destImages[i].height / 2)
+          };
+        }
+
+        clearCanvas(true);
+      }
+
+      function initEvent() {
+
+        $('.img').mouseenter(function(e) {
+          $(this).css('background', '#ccc');
+        });;
+
+        $('.img').mouseleave(function(e) {
+          $(this).css('background', '#fff');
+        });
+
+        $('.srcImg').click(function(e) {
+          pointObj.startItem = source[$(this).attr('id')];
+        });
+
+        $('.destImg').click(function(e) {
+          if (pointObj.startItem) {
+            pointObj.endItem = dest[$(this).attr('id')];
+            drawLine(pointObj);
+          }
+        });
+
+        $('#btnClear').click(function(e) {
+          clearCanvas(false);
+          userAnswer = {};
+          lineObj = {};
+        });
+
+        $('#btnUndo').click(function(e) {
+          undoAnswer();
+        });
+      }
+
+      function drawLine(obj) {
+        console.log("POINT : " + JSON.stringify(obj));
+        if (obj) {
+          // 기존에 표현한 선이 있으면 지움.
+          // TODO 여기에서 undo를 해야하는데 array가 아니라 object에 넣어서 source image를 중심으로 갖고 있어야겠다.
+          if (userAnswer[obj.startItem.id] && obj.endItem.id !== userAnswer[obj.startItem.id]) {
+            // var endPoint = dest[userAnswer[obj.startItem.id]];
+            // context.beginPath();
+            // context.strokeStyle = "#fff";
+            // context.lineWidth = 7;
+            // context.lineJoin = "round";
+            // context.moveTo(obj.startItem.x, obj.startItem.y);
+            // context.lineTo(endPoint.x, endPoint.y);
+            // context.closePath();
+            // context.stroke();
+            lineObj[obj.startItem.id] = '';
+            showLineAnswer(lineObj);
+          }
+
+          // 선긋기
+          context.beginPath();
+          context.strokeStyle = "#222222";
+          context.lineWidth = 5;
+          context.lineJoin = "round";
+          context.moveTo(obj.startItem.x, obj.startItem.y);
+          context.lineTo(obj.endItem.x, obj.endItem.y);
+          context.closePath();
+          context.stroke();
+
+          // 사용자 answer 저장
+          lastAnswerSourceId = obj.startItem.id;
+          userAnswer[lastAnswerSourceId] = obj.endItem.id;
+          lineObj[lastAnswerSourceId] = canvas.toDataURL();
+          console.log('User Answer : ' + JSON.stringify(userAnswer));
+          console.log('Line Object : ' + JSON.stringify(lineObj));
+
+          // 초기화
+          pointObj = {};
+        }
+      }
+
+      /* 화면 clear */
+      function clearCanvas(isFirst) {
+        if (isFirst) {
+          // 처음 실행할 때 화면 초기
+          context.beginPath()
+          context.fillStyle = '#fff'
+          context.closePath()
+          context.fillRect(0, 0, canvas.width, canvas.height)
+          lineObj['bg'] = canvas.toDataURL();
+        } else {
+          var bg = new Image()
+          bg.src = lineObj['bg']
+          bg.onload = function() { context.drawImage(bg, 0, 0); }
+        }
+      }
+
+      function undoAnswer() {
+        lineObj[lastAnswerSourceId] = '';
+        userAnswer[lastAnswerSourceId] = '';
+        showLineAnswer(lineObj);
+      }
+
+      function showLineAnswer(obj) {
+        console.log('showLineAnswer(), line obj : ' + JSON.stringify(obj));
+        clearCanvas(false);
+        for (var key in obj) {
+          console.log('key : ' + key);
+          if (key === 'bg') continue;
+          redrawLine(obj[key]);
+        }
+      }
+
+      function redrawLine(value) {
+        if (value) {
+          var img = new Image();
+          img.src = value;
+          img.onload = function() { context.drawImage(img, 0, 0)};
+        }
+        
+      }
+    </script>
+  </body>
+</html>
