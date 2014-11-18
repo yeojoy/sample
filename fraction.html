@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="./javascripts/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="./javascripts/raphael-min.js"></script>
+    <title>선택하기 예제</title>
+
+    <style>
+    </style>
+  </head>
+  <body>
+    <div  style="text-align: center;">
+      <div id="canvas"></div>
+      <div class="buttons">
+        <button id='btnClear'>clear</button>
+        <button id='btnUndo'>undo</button>
+      </div>
+    </div>
+
+    <script>
+    var paper;
+    var userAnswer = {};
+    
+    // sample obj, json 뽑을 때 참고.
+    var s0 = { id: 's0', url: './images/a.png', style: 'default', width: 100, height: 100 };
+    var s1 = { id: 's1', url: './images/a.png', style: 'default', width: 100, height: 100 };
+    var s2 = { id: 's2', url: './images/a.png', style: 'default', width: 100, height: 100 };
+
+    var d0 = { id: 'd0', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d1 = { id: 'd1', url: './images/b.png', style: 'default', width: 100, height: 104 };
+    var d2 = { id: 'd2', url: './images/b.png', style: 'default', width: 100, height: 104 };
+
+
+    $().ready(function() {
+      $(window).on('hashchange', route);
+
+      var hash = window.location.hash.replace("#", "");
+
+      if(hash.length > 0) {
+
+      } else {
+
+      }
+
+      initDrawLine();
+
+    });
+
+    function route(event) { 
+      var hash = window.location.hash.replace("#", "");
+
+      if(hash.length > 0) {
+
+      } else {
+
+      }
+    }
+
+    function initDrawLine() {
+      var canvas = document.getElementById('canvas');
+      // 캔버스 초기
+      if (canvas.childNodes[0]) {
+        canvas.removeChild(canvas.childNodes[0]);  
+      }
+      paper = Raphael('canvas', 1000, 600);
+      
+      // .attr({'stroke': '#000', 'stroke-width': 2});
+      // .attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'});
+      paper.path(["M50,50L172,50L172,150L50,150L50,50"]).attr({'stroke': '#000', 'stroke-width': 2});
+      paper.path("[M90,50L90,150").attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'}).toFront();
+      paper.path("[M132,50L132,150").attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'}).toFront();
+      var rect1 = paper.rect(50, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
+      rect1[0].isSelect = false;
+      var rect2 = paper.rect(91, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
+      rect2[0].isSelect = false;
+      var rect3 = paper.rect(132, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
+      rect3[0].isSelect = false;
+      
+
+      var rect4 = paper.path(["M50,200L100,200L100,300L50,300L50,200"]).attr({'fill': '#f00', 'stroke': '#ffff'});
+
+      var 
+      var objArray = [rect1, rect2, rect3, rect4];
+      initDrawLineEvent(objArray);
+    }
+
+    function initDrawLineEvent(obj) {
+      for (var objId in obj) {
+        (function (img, objId) {
+          img[0].onmousedown = function() {
+            console.log('mousedown');
+            if (img[0].isSelect)
+              img.attr('fill', '#fff');
+            else
+              img.attr('fill', '#0a0');
+            img[0].isSelect = !img[0].isSelect;
+          };
+
+          img[0].onmouseover = function() {
+            console.log('onmouseover');
+            img.attr('stroke-opacity', 0.5);
+          };
+          img[0].onmouseout = function() {
+            console.log('onmouseout');
+            img.attr('stroke-opacity', 1.0);
+          };
+
+        })(obj[objId], objId);
+      }
+    }
+
+    // 선을 그림
+    function drawLine(obj) {
+    
+    }
+    
+    function restoreItemState(obj) {
+      
+    }
+    </script>
+  </body>
+</html>
