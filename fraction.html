@@ -37,9 +37,11 @@
     $().ready(function() {
       $(window).on('hashchange', route);
 
-      denom = parseInt(window.location.hash.replace("#", ""));
+      hash = parseInt(window.location.hash.replace("#", ""));
 
-      if(denom < 1 || denom > 14) {
+      if(denom > 0 && denom < 15) {
+        denom = hash;
+      } else {
         denom = 3;
       }
 
@@ -48,9 +50,11 @@
     });
 
     function route(event) { 
-      denom = parseInt(window.location.hash.replace("#", ""));
+      hash = parseInt(window.location.hash.replace("#", ""));
 
-      if(denom < 1 || denom > 9) {
+      if(denom > 0 && denom < 15) {
+        denom = hash;
+      } else {
         denom = 3;
       }
       setQuestion(denom);
@@ -122,7 +126,7 @@
       // 분모
       denominator = num;
       // 분자
-      numerator = Math.floor((Math.random() * num) + 1);
+      numerator = Math.floor((Math.random() * (num - 1)) + 1);
       $('.question').text("Question : " + numerator + " / " + denominator);
     }
 
