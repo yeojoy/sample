@@ -13,10 +13,6 @@
   <body>
     <div  style="text-align: center;">
       <div id="canvas"></div>
-      <div class="buttons">
-        <button id='btnClear'>clear</button>
-        <button id='btnUndo'>undo</button>
-      </div>
     </div>
 
     <script>
@@ -84,7 +80,7 @@
 
       
       var trg1 = paper.path(["M300,50L350,150L250,150L300,50"]).attr({"fill": '#fff'})
-      
+      objArray.push(trg1);
       initDrawLineEvent(objArray);
     }
 
