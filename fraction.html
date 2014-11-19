@@ -13,12 +13,17 @@
   <body>
     <div  style="text-align: center;">
       <div id="canvas"></div>
+      <span class="question"></span> <span class="answer"></span>
+
     </div>
 
     <script>
     var paper;
-    var userAnswer = {};
-    
+    var userAnswer = '';
+    var panelObj = {};
+    var denom;
+    var selectCount;
+
     // sample obj, json 뽑을 때 참고.
     var s0 = { id: 's0', url: './images/a.png', style: 'default', width: 100, height: 100 };
     var s1 = { id: 's1', url: './images/a.png', style: 'default', width: 100, height: 100 };
@@ -32,56 +37,54 @@
     $().ready(function() {
       $(window).on('hashchange', route);
 
-      var hash = window.location.hash.replace("#", "");
+      denom = parseInt(window.location.hash.replace("#", ""));
 
-      if(hash.length > 0) {
-
-      } else {
-
+      if(denom < 1 || denom > 14) {
+        denom = 3;
       }
 
-      initDrawLine();
-
+      setQuestion(denom);
+      initDrawLine(denom);
     });
 
     function route(event) { 
-      var hash = window.location.hash.replace("#", "");
+      denom = parseInt(window.location.hash.replace("#", ""));
 
-      if(hash.length > 0) {
-
-      } else {
-
+      if(denom < 1 || denom > 9) {
+        denom = 3;
       }
+      setQuestion(denom);
+      initDrawLine(denom);
     }
 
-    function initDrawLine() {
+    function initDrawLine(num) {
+      console.log("No. " + num);
       var canvas = document.getElementById('canvas');
       // 캔버스 초기
       if (canvas.childNodes[0]) {
         canvas.removeChild(canvas.childNodes[0]);  
       }
+      selectCount = 0;
+
       paper = Raphael('canvas', 1000, 600);
       
-      // .attr({'stroke': '#000', 'stroke-width': 2});
-      // .attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'});
-      paper.path(["M50,50L172,50L172,150L50,150L50,50"]).attr({'stroke': '#000', 'stroke-width': 2});
-      paper.path("[M90,50L90,150").attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'}).toFront();
-      paper.path("[M132,50L132,150").attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'}).toFront();
-      var rect1 = paper.rect(50, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
-      rect1[0].isSelect = false;
-      var rect2 = paper.rect(91, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
-      rect2[0].isSelect = false;
-      var rect3 = paper.rect(132, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');
-      rect3[0].isSelect = false;
-      
-
-      var rect4 = paper.path(["M50,200L100,200L100,300L50,300L50,200"]).attr({'fill': '#f00', 'stroke': '#ffff'});
-      var objArray = [rect1, rect2, rect3, rect4];
-
-      
-      var trg1 = paper.path(["M300,50L350,150L250,150L300,50"]).attr({"fill": '#fff'})
-      objArray.push(trg1);
-      initDrawLineEvent(objArray);
+      for (i = 0; i < num; i++) {
+        x = 50 + (40 * i) + i;
+        panelObj['panel' + i] = paper.rect(x, 50, 40, 100).attr('fill', '#fff').attr('stroke', '#ffff');;
+        panelObj['panel' + i][0].isSelect = false;
+        panelObj['panel' + i][0].id = 'panel' + i;
+        if (i !== (num - 1)) {
+          startX = 50 + (40 * (i + 1)) + (i + 1);
+          paper.path(["M", startX, "50L", startX, "150"]).attr({'stroke': '#000', 'stroke-width': 2, 'stroke-dasharray': '-'}).toFront();
+        }
+      }
+      x = 50, y = 50;
+      w = panelObj['panel' + (num - 1)][0].x.baseVal.value + 40;
+      h = 150;
+      paper.path(["M", x, y, "L", w, y, "L", w, h, "L", x, h, "L", x, y]).attr({'stroke': '#000', 'stroke-width': 2});
+         
+      panelObj['trg1'] = paper.path(["M300,250L350,450L250,450L300,250"]).attr({"fill": '#fff'});
+      initDrawLineEvent(panelObj);
     }
 
     function initDrawLineEvent(obj) {
@@ -89,11 +92,17 @@
         (function (img, objId) {
           img[0].onmousedown = function() {
             console.log('mousedown');
-            if (img[0].isSelect)
+            if (img[0].isSelect) {
               img.attr('fill', '#fff');
-            else
+              if (objId !== 'trg1') selectCount--;
+            } else {
               img.attr('fill', '#0a0');
+              if (objId !== 'trg1') selectCount++;
+            }
             img[0].isSelect = !img[0].isSelect;
+
+            showAnswer(selectCount);
+
           };
 
           img[0].onmouseover = function() {
@@ -109,14 +118,20 @@
       }
     }
 
-    // 선을 그림
-    function drawLine(obj) {
-    
+    function setQuestion(num) {
+      // 분모
+      denominator = num;
+      // 분자
+      numerator = Math.floor((Math.random() * num) + 1);
+      $('.question').text("Question : " + numerator + " / " + denominator);
     }
-    
-    function restoreItemState(obj) {
-      
+
+    function showAnswer(count) {
+      userAnswer = count + "/" + denom;
+      $('.answer').text('Answer : ' + userAnswer);
     }
+
+    
     </script>
   </body>
 </html>
