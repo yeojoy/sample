@@ -1,6 +1,25 @@
+function initDragNDrop(num) {
+    $('.draggable').remove();
+    $('.dropzone').remove();
+    
+    // dropzoneAnswers 초기화
+    while (dropzoneAnswers.length) { dropzoneAnswers.pop(); }
+    showAnswers();
+    
+    for (i = 0; i < num; i++) {
+        $('.dragzone-wrapper').append("<div id='drag" + (i + 1) + "' class='draggable js-drag'><img src='./images/a.png'/></div>");
+        $('.dropzone-wrapper').append("<div id='drop" + (i + 1) + "' class='dropzone js-drop'><img src='./images/b.png'/></div>");
+    }
 
+    var dragObjList = $('.draggable');
+    var dropzoneObjList = $('.dropzone');
+    // setupDropzone에 받을 Draggable obj id가 들어간 list
+    // var draggableIdList = new Array(dragObjList.length);
+    // for (i = 0; i < dragObjList.length; i++) {
+    //     draggableIdList[i] = '#' + dragObjList[i].id;
+    // }
 
-(function (interact) {
+    (function (interact) {
 
         'use strict';
 
@@ -25,18 +44,10 @@
 
         // setup drop areas.
         // drag obj and drop obj 1:N으로 매칭이 가능
-        // dropzone #1 accepts draggable #1
-        // setupDropzone('#drop1', '#drag1, #drag2, #drag3, #drag4');
-        
-        // dropzone #2 accepts draggable #1 and #2
-        // setupDropzone('#drop2', '#drag1, #drag2, #drag3, #drag4');
-        
-        // every dropzone accepts draggable #3
-        // setupDropzone('#drop3', '#drag1, #drag2, #drag3, #drag4');
-        // setupDropzone('#drop4', '#drag1, #drag2, #drag3, #drag4');
-
         for (var i in dropzoneObjList) {
             console.log('#' + dropzoneObjList[i].id);
+            // Dropzone은 반드시 id selector가 들어가야함. '#drop1'
+            // Draggable은 상관없음.
             setupDropzone('#' + dropzoneObjList[i].id, dragObjList);
         }
 
@@ -111,3 +122,4 @@
         }
 
     }(window.interact));
+}
