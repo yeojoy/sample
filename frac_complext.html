@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/images/favicon/favicon.ico" type="image/x-icon" />
+    <script type="text/javascript" src="./javascripts/jquery-2.1.0.min.js"></script>
+    <script type="text/javascript" src="./javascripts/drawline.js"></script>
+    <script type="text/javascript" src="./javascripts/raphael-min.js"></script>
+    <title>Raphaeljs 놀이터</title>
+
+    <style>
+    </style>
+  </head>
+  <body>
+    <div  style="text-align: center;">
+      <div id="canvas"></div>
+    </div>
+
+    <script>
+    const X = 500, Y = 400;
+    const H = 150;
+
+    const TYPE = 'pie';
+    var degree = 0;
+    var denom = 3;
+    var paper;
+
+    function route(event) { 
+      hash = parseInt(window.location.hash.replace("#", ""));
+
+      if(hash > 0 && hash < 19) {
+        denom = hash;
+      } else {
+        denom = 3;
+      }
+      draw(denom);
+    }
+
+    $().ready(function() {
+      $(window).on('hashchange', route);
+
+      hash = parseInt(window.location.hash.replace("#", ""));
+
+      if(hash > 0 || hash < 19) {
+        denom = hash;
+      } else {
+        denom = 3;
+      }
+
+      draw(denom);
+    });
+
+    function draw(n) {
+      var canvas = document.getElementById('canvas');
+      if (canvas.childNodes[0]) {
+        canvas.removeChild(canvas.childNodes[0]);  
+      }
+
+      paper = Raphael('canvas', 1000, 600);
+
+      array = getPointArray(n);      
+      console.log(array);
+      r = Math.round(H / Math.cos(rad(degree / 2)));
+      flag = degree > 180;
+
+      if (TYPE === 'pie') {
+        for (i = 0, j = array.length; i < j; i++) {
+          a = array[i];
+          // +flag는 true false로 앞에 +를 붙여줘야함.
+          // +true = 1, +false = 0... 맙소사!
+          pi = paper.path(["M", X, Y, "L", a[0], a[1], "A", r, r, 0, +flag, 0, a[2], a[3], "z"]).attr('fill', '#FFF');
+          setEvent(pi);
+        }
+
+      } else {
+        for (i = 0, j = array.length; i < j; i++) {
+          a = array[i];
+          tri = paper.path(["M",X,Y,"L",a[0],a[1],"L",a[2],a[3],"Z"]).attr('fill', '#FFF');
+          setEvent(tri);
+        }
+      }
+      
+    }
+
+    function getPointArray(n) {
+      var tArray = new Array();
+      var W = 0;
+      array = [];
+      tmp = [];
+      last = [];
+
+      if (n < 8) {
+        degree = Math.floor(Math.random() * Math.floor(180 / n));  
+      } else if (n < 12){
+        degree = Math.floor(Math.random() * Math.floor(270 / n));  
+      } else {
+        degree = Math.floor(Math.random() * Math.floor(360 / n));  
+      }
+      
+      if (degree < 20) {
+        degree = degree * 20 <= 360 ? 20 : degree;
+      }
+
+      for (i = 0; i < n; i++) {
+        if (i === 0) {
+          array.push(X - Math.round(H * Math.tan(rad(degree / 2))));
+          array.push(Y + H);
+          array.push(X + Math.round(H * Math.tan(rad(degree / 2))));
+          array.push(Y + H);
+          W = 2 * Math.round(H * Math.tan(rad(degree / 2)));
+
+        } else {
+          tmp = array;
+          array = [];
+          xValue = Math.round(W * Math.cos(rad(degree * i)));
+          yValue = Math.round(W * Math.sin(rad(degree * i)));
+          array.push(tmp[2]);
+          array.push(tmp[3]);
+          array.push(tmp[2] + xValue);
+          array.push(tmp[3] - yValue);
+        }
+
+        tArray.push(array);
+      }
+
+      return tArray;
+    }
+
+    function rad(degree) {
+      return  degree * Math.PI / 180;
+    }
+
+    function setEvent(obj) {
+      if (obj) {
+        obj[0].onmousedown = function() {
+          console.log('mousedown');
+          if (obj[0].isSelect) {
+            obj.attr('fill', '#fff');
+          } else {
+            obj.attr('fill', '#0a0');
+          }
+          obj[0].isSelect = !obj[0].isSelect;
+
+          showAnswer(selectCount);
+
+        };
+
+        obj[0].onmouseover = function() {
+          console.log('onmouseover');
+          obj.attr('stroke-opacity', 0.5);
+        };
+        obj[0].onmouseout = function() {
+          console.log('onmouseout');
+          obj.attr('stroke-opacity', 1.0);
+        };  
+      }
+      
+    }
+
+    </script>
+  </body>
+</html>
